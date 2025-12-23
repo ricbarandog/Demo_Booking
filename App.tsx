@@ -14,14 +14,14 @@ import {
   CreditCard,
   Trophy
 } from 'lucide-react';
-import BookingCalendar from './components/BookingCalendar';
-import SuccessModal from './components/SuccessModal';
-import NewsCard from './components/NewsCard';
-import ChatBot from './components/ChatBot';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
-import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants';
-import { BookingDetails, TimeSlot, NewsItem } from './types';
+import BookingCalendar from './components/BookingCalendar.tsx';
+import SuccessModal from './components/SuccessModal.tsx';
+import NewsCard from './components/NewsCard.tsx';
+import ChatBot from './components/ChatBot.tsx';
+import AdminDashboard from './components/AdminDashboard.tsx';
+import AdminLogin from './components/AdminLogin.tsx';
+import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants.ts';
+import { BookingDetails, TimeSlot, NewsItem } from './types.ts';
 
 const App: React.FC = () => {
   // Master State
@@ -79,14 +79,12 @@ const App: React.FC = () => {
     };
     
     setReservations(prev => [...prev, booking]);
-    // Mark slot as unavailable in mock data
     setSlots(prev => prev.map(s => s.time === selectedTime ? { ...s, isAvailable: false } : s));
     
     setLastBooking(booking);
     setIsSubmitting(false);
     setShowSuccess(true);
     
-    // Reset form
     setSelectedTime('');
     setName('');
     setEmail('');
@@ -94,7 +92,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fcfdfc] scroll-smooth">
-      {/* Hidden Admin Login Modal */}
       <AdminLogin 
         isOpen={showLogin} 
         onClose={() => setShowLogin(false)} 
@@ -104,7 +101,6 @@ const App: React.FC = () => {
         }} 
       />
 
-      {/* Admin Dashboard Overlay */}
       {isAdmin && (
         <AdminDashboard 
           slots={slots} 
@@ -117,7 +113,6 @@ const App: React.FC = () => {
         />
       )}
 
-      {/* Navigation Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#1b4332] rounded-lg flex items-center justify-center">
@@ -141,19 +136,17 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-grow max-w-2xl mx-auto w-full px-6 py-8">
-        {/* Hero Section */}
-        <section className="mb-12">
+        <section className="mb-12 text-center sm:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#e0f2fe] rounded-full text-[#0369a1] text-[10px] font-bold uppercase tracking-widest mb-4">
             <MapPin size={12} />
             Private Westchester Estate
           </div>
-          <h1 className="text-5xl mb-4 text-[#1b4332]">Elegance In Every Swing.</h1>
+          <h1 className="text-4xl sm:text-5xl mb-4 text-[#1b4332]">Elegance In Every Swing.</h1>
           <p className="text-slate-500 font-light text-lg">
             Experience the pinnacle of court play at Yhalason. Pro-grade surfaces, elite amenities, and a community dedicated to excellence.
           </p>
         </section>
 
-        {/* Booking Form Section */}
         <section id="book" className="space-y-8 mb-20">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-1.5 h-6 bg-[#1b4332] rounded-full"></div>
@@ -267,7 +260,6 @@ const App: React.FC = () => {
           </form>
         </section>
 
-        {/* Club Rates Section */}
         <section id="rates" className="mb-20">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-1.5 h-6 bg-[#1b4332] rounded-full"></div>
@@ -317,7 +309,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Club News Section */}
         <section id="news" className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -335,7 +326,6 @@ const App: React.FC = () => {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="bg-slate-50 border-t border-slate-100 px-6 py-16 text-center">
         <div className="mb-8">
           <span className="font-bold text-xl tracking-tight text-[#1b4332]">Yhalason <span className="font-light">Court Club</span></span>
@@ -360,7 +350,6 @@ const App: React.FC = () => {
         </div>
       </footer>
 
-      {/* Persistent Components */}
       <ChatBot slots={slots} news={news} />
       <SuccessModal 
         isOpen={showSuccess} 

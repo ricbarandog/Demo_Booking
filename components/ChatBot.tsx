@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { MessageSquare, Send, X, Bot, Loader2 } from 'lucide-react';
-import { TimeSlot, NewsItem } from '../types';
-import { CLUB_RATES } from '../constants';
+import { TimeSlot, NewsItem } from '../types.ts';
+import { CLUB_RATES } from '../constants.ts';
 
 interface ChatBotProps {
   slots: TimeSlot[];
@@ -34,7 +34,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const availableSlots = slots.filter(s => s.isAvailable).map(s => s.time).join(', ');
       
       const systemInstruction = `
@@ -64,7 +64,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
 
   return (
     <>
-      {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(true)}
         className={`fixed bottom-6 right-6 w-16 h-16 bg-[#1b4332] text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 ${isOpen ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
@@ -72,7 +71,6 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
         <MessageSquare size={28} />
       </button>
 
-      {/* Chat Window */}
       <div className={`fixed bottom-6 right-6 w-[360px] max-w-[90vw] h-[500px] bg-white rounded-[2rem] shadow-2xl z-50 flex flex-col overflow-hidden transition-all origin-bottom-right ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none'}`}>
         <div className="bg-[#1b4332] p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -92,14 +90,14 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
         <div ref={scrollRef} className="flex-grow p-6 overflow-y-auto space-y-4 bg-slate-50/50">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-[#1b4332] text-white rounded-tr-none shadow-lg shadow-[#1b4332]/10' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm'}`}>
+              <div className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm ${m.role === 'user' ? 'bg-[#1b4332] text-white rounded-tr-none shadow-lg' : 'bg-white text-slate-700 border border-slate-100 rounded-tl-none'}`}>
                 {m.text}
               </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-slate-100 shadow-sm flex items-center gap-2 text-slate-400">
+              <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-slate-100 flex items-center gap-2 text-slate-400">
                 <Loader2 size={16} className="animate-spin" />
                 <span className="text-xs">Thinking...</span>
               </div>
@@ -115,11 +113,11 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask about rates or availability..."
-              className="w-full pl-4 pr-12 py-3 bg-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1b4332]/10 transition-all"
+              className="w-full pl-4 pr-12 py-3 bg-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#1b4332]/10"
             />
             <button
               onClick={handleSend}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#1b4332] hover:bg-[#1b4332]/5 rounded-lg transition-all"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-[#1b4332] hover:bg-[#1b4332]/5 rounded-lg"
             >
               <Send size={18} />
             </button>

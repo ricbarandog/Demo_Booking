@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { TimeSlot, NewsItem, BookingDetails } from '../types';
+import { TimeSlot, NewsItem, BookingDetails } from '../types.ts';
 import { Check, X, Plus, Trash2, Edit3, Save, Users, CalendarDays, Clock, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -56,7 +56,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const deleteReservation = (id: string) => {
     const res = reservations.find(r => r.id === id);
     if (res) {
-      // Free up the slot if it matches
       setSlots(prev => prev.map(s => s.time === res.time ? { ...s, isAvailable: true } : s));
     }
     setReservations(prev => prev.filter(r => r.id !== id));
@@ -85,7 +84,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="grid lg:grid-cols-3 gap-12">
-          {/* Schedule Management */}
           <section className="lg:col-span-1">
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
               <span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span>
@@ -110,7 +108,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </section>
 
-          {/* Reservations Management */}
           <section className="lg:col-span-2 space-y-12">
             <div>
               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
@@ -169,7 +166,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
 
-            {/* News Management */}
             <div>
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white flex items-center gap-3">
@@ -203,7 +199,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </section>
         </div>
 
-        {/* Edit News Modal */}
         {editingNews && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative">
@@ -215,144 +210,75 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   placeholder="Title" 
                   value={editingNews.title || ''}
                   onChange={e => setEditingNews({...editingNews, title: e.target.value})}
-                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#1b4332]/20"
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
                 />
                 <textarea 
                   placeholder="Brief Description" 
                   value={editingNews.description || ''}
                   onChange={e => setEditingNews({...editingNews, description: e.target.value})}
-                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 h-24 focus:outline-none focus:ring-2 focus:ring-[#1b4332]/20"
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 h-24 focus:outline-none"
                 />
                 <input 
                   type="text" 
-                  placeholder="Category (e.g. Tournament, Facility)" 
+                  placeholder="Category" 
                   value={editingNews.tag || ''}
                   onChange={e => setEditingNews({...editingNews, tag: e.target.value})}
-                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#1b4332]/20"
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
                 />
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    onClick={saveNews}
-                    className="flex-1 py-4 bg-[#1b4332] text-white font-bold rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
-                  >
-                    Update Journal
-                  </button>
-                </div>
+                <button onClick={saveNews} className="w-full py-4 bg-[#1b4332] text-white font-bold rounded-2xl">Update Journal</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Edit Reservation Modal */}
         {editingReservation && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
             <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative">
               <button onClick={() => setEditingReservation(null)} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"><X size={18} /></button>
               <h4 className="text-2xl font-bold text-slate-900 mb-6">Modify Reservation</h4>
               <div className="space-y-4">
-                <div className="space-y-1">
-                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Member Name</label>
-                   <input 
-                    type="text" 
-                    value={editingReservation.name || ''}
-                    onChange={e => setEditingReservation({...editingReservation, name: e.target.value})}
-                    className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#1b4332]/20"
-                  />
-                </div>
-                <div className="space-y-1">
-                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Contact Email</label>
-                   <input 
-                    type="email" 
-                    value={editingReservation.email || ''}
-                    onChange={e => setEditingReservation({...editingReservation, email: e.target.value})}
-                    className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-[#1b4332]/20"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Time</label>
-                    <select 
-                      value={editingReservation.time || ''}
-                      onChange={e => setEditingReservation({...editingReservation, time: e.target.value})}
-                      className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
-                    >
-                      {slots.map(s => <option key={s.id} value={s.time}>{s.time}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Duration</label>
-                    <select 
-                      value={editingReservation.duration || 60}
-                      onChange={e => setEditingReservation({...editingReservation, duration: parseInt(e.target.value) as 60 | 90})}
-                      className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
-                    >
-                      <option value={60}>60 Min</option>
-                      <option value={90}>90 Min</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <button 
-                    onClick={saveReservation}
-                    className="flex-1 py-4 bg-[#1b4332] text-white font-bold rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
-                  >
-                    Apply Changes
-                  </button>
-                </div>
+                <input 
+                  type="text" 
+                  value={editingReservation.name || ''}
+                  onChange={e => setEditingReservation({...editingReservation, name: e.target.value})}
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
+                />
+                <input 
+                  type="email" 
+                  value={editingReservation.email || ''}
+                  onChange={e => setEditingReservation({...editingReservation, email: e.target.value})}
+                  className="w-full p-4 bg-slate-50 rounded-xl border border-slate-100 focus:outline-none"
+                />
+                <button onClick={saveReservation} className="w-full py-4 bg-[#1b4332] text-white font-bold rounded-2xl shadow-lg">Apply Changes</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* View Details Modal */}
         {viewingReservation && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl relative">
+            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-md shadow-2xl relative text-center">
               <button onClick={() => setViewingReservation(null)} className="absolute top-6 right-6 p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors"><X size={18} /></button>
-              
-              <div className="text-center mb-8">
-                <div className="w-20 h-20 bg-emerald-50 text-[#1b4332] rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users size={32} />
-                </div>
-                <h4 className="text-2xl font-bold text-[#1b4332]">Booking Certificate</h4>
-                <p className="text-slate-400 text-xs uppercase tracking-widest mt-1">Ref: {viewingReservation.id}</p>
+              <div className="w-20 h-20 bg-emerald-50 text-[#1b4332] rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users size={32} />
               </div>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-y-6">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Player</p>
-                    <p className="text-slate-900 font-bold">{viewingReservation.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date</p>
-                    <p className="text-slate-900 font-bold">{format(new Date(viewingReservation.date), 'MMMM do, yyyy')}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Time / Duration</p>
-                    <p className="text-slate-900 font-bold">{viewingReservation.time} ({viewingReservation.duration}m)</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Contact</p>
-                    <p className="text-slate-900 font-bold">{viewingReservation.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Notification</p>
-                    <p className="text-slate-900 font-bold">{viewingReservation.notification}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Status</p>
-                    <p className="text-emerald-600 font-bold flex items-center gap-1">Confirmed <Check size={14} /></p>
-                  </div>
+              <h4 className="text-2xl font-bold text-[#1b4332]">Booking Certificate</h4>
+              <p className="text-slate-400 text-xs uppercase tracking-widest mt-1 mb-8">Ref: {viewingReservation.id}</p>
+              <div className="text-left space-y-4 mb-8">
+                <div className="flex justify-between border-b border-slate-50 pb-2">
+                  <span className="text-slate-400 text-xs font-bold uppercase">Player</span>
+                  <span className="font-bold">{viewingReservation.name}</span>
                 </div>
-
-                <button 
-                  onClick={() => setViewingReservation(null)}
-                  className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all mt-4"
-                >
-                  Close Record
-                </button>
+                <div className="flex justify-between border-b border-slate-50 pb-2">
+                  <span className="text-slate-400 text-xs font-bold uppercase">Schedule</span>
+                  <span className="font-bold">{viewingReservation.time}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-50 pb-2">
+                  <span className="text-slate-400 text-xs font-bold uppercase">Email</span>
+                  <span className="font-bold">{viewingReservation.email}</span>
+                </div>
               </div>
+              <button onClick={() => setViewingReservation(null)} className="w-full py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl">Close Record</button>
             </div>
           </div>
         )}

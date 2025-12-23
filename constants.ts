@@ -1,5 +1,5 @@
 
-import { NewsItem, TimeSlot } from './types';
+import { NewsItem, TimeSlot } from './types.ts';
 
 export const COLORS = {
   forestGreen: '#1b4332',
