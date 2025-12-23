@@ -139,7 +139,7 @@ const App: React.FC = () => {
         <section className="mb-12 text-center sm:text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#e0f2fe] rounded-full text-[#0369a1] text-[10px] font-bold uppercase tracking-widest mb-4">
             <MapPin size={12} />
-            Private Westchester Estate
+            Barangay Yhalason
           </div>
           <h1 className="text-4xl sm:text-5xl mb-4 text-[#1b4332]">Elegance In Every Swing.</h1>
           <p className="text-slate-500 font-light text-lg">

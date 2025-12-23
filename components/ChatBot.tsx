@@ -5,6 +5,13 @@ import { MessageSquare, Send, X, Bot, Loader2 } from 'lucide-react';
 import { TimeSlot, NewsItem } from '../types.ts';
 import { CLUB_RATES } from '../constants.ts';
 
+// Add global declaration to fix "Cannot find name 'process'" in TypeScript environments
+declare var process: {
+  env: {
+    [key: string]: string | undefined;
+  };
+};
+
 interface ChatBotProps {
   slots: TimeSlot[];
   news: NewsItem[];
@@ -34,6 +41,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
     setIsLoading(true);
 
     try {
+      // Create a new instance right before use as per guidelines
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const availableSlots = slots.filter(s => s.isAvailable).map(s => s.time).join(', ');
       
@@ -56,6 +64,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
 
       setMessages(prev => [...prev, { role: 'bot', text: response.text || "I apologize, I'm having trouble connecting to my systems." }]);
     } catch (error) {
+      console.error('Chat error:', error);
       setMessages(prev => [...prev, { role: 'bot', text: "I'm sorry, I'm currently resting. Please try again in a moment." }]);
     } finally {
       setIsLoading(false);
