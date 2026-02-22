@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { TimeSlot, NewsItem, BookingDetails, WaitlistEntry } from '../types.ts';
+import { supabase } from '../supabase.ts';
 import { 
   Check, 
   X, 
@@ -83,13 +84,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setSlots(prev => prev.map(s => s.id === id ? { ...s, isAvailable: !s.isAvailable } : s));
   };
 
-  const deleteReservation = (id: string) => {
+  const deleteReservation = async (id: string) => {
     if(!confirm("Warning: Voiding this transaction will release the slot and refund the digital token. Proceed?")) return;
-    const res = reservations.find(r => r.id === id);
-    if (res) {
-      setSlots(prev => prev.map(s => s.time === res.time ? { ...s, isAvailable: true } : s));
+    
+    try {
+      const { error } = await supabase.from('reservations').delete().eq('id', id);
+      if (error) throw error;
+
+      const res = reservations.find(r => r.id === id);
+      if (res) {
+        setSlots(prev => prev.map(s => s.time === res.time ? { ...s, isAvailable: true } : s));
+      }
+      setReservations(prev => prev.filter(r => r.id !== id));
+      setViewingReservation(null);
+    } catch (err) {
+      console.error('Supabase delete reservation error:', err);
+      alert('Failed to delete reservation from database.');
     }
-    setReservations(prev => prev.filter(r => r.id !== id));
   };
 
   const deleteNews = (id: string) => {
@@ -97,9 +108,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNews(prev => prev.filter(n => n.id !== id));
   };
 
-  const deleteWaitlistEntry = (id: string) => {
+  const deleteWaitlistEntry = async (id: string) => {
     if(!confirm("Remove this person from the waitlist?")) return;
-    setWaitlist(prev => prev.filter(w => w.id !== id));
+    
+    try {
+      const { error } = await supabase.from('waitlist').delete().eq('id', id);
+      if (error) throw error;
+      setWaitlist(prev => prev.filter(w => w.id !== id));
+    } catch (err) {
+      console.error('Supabase delete waitlist error:', err);
+      alert('Failed to remove from waitlist in database.');
+    }
   };
 
   const saveNews = () => {

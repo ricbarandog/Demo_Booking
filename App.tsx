@@ -24,38 +24,63 @@ import AdminLogin from './components/AdminLogin.tsx';
 import WaitlistModal from './components/WaitlistModal.tsx';
 import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants.ts';
 import { BookingDetails, TimeSlot, NewsItem, WaitlistEntry } from './types.ts';
+import { supabase } from './supabase.ts';
 
 const App: React.FC = () => {
   const [slots, setSlots] = useState<TimeSlot[]>(INITIAL_MOCK_SLOTS);
   const [news, setNews] = useState<NewsItem[]>(INITIAL_MOCK_NEWS);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
-  const [reservations, setReservations] = useState<BookingDetails[]>([
-    {
-      id: 'res-1',
-      date: new Date(),
-      time: '08:30 AM',
-      duration: 90,
-      name: 'Julianne Moore',
-      email: 'j.moore@example.com',
-      notification: 'Email',
-      playerType: 'Member',
-      totalPaid: 60
-    },
-    {
-      id: 'res-2',
-      date: new Date(),
-      time: '02:30 PM',
-      duration: 60,
-      name: 'Robert De Niro',
-      email: 'bob@hollywood.com',
-      notification: 'WhatsApp',
-      playerType: 'Guest',
-      totalPaid: 75
-    }
-  ]);
+  const [reservations, setReservations] = useState<BookingDetails[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+
+  // Fetch data from Supabase on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Reservations
+        const { data: resData, error: resError } = await supabase
+          .from('reservations')
+          .select('*')
+          .order('date', { ascending: true });
+        
+        if (!resError && resData) {
+          setReservations(resData.map(r => ({
+            ...r,
+            date: new Date(r.date),
+            playerType: r.player_type,
+            totalPaid: r.total_paid
+          })));
+          
+          // Update slots availability based on today's reservations
+          const today = new Date().toISOString().split('T')[0];
+          const todayRes = resData.filter(r => r.date === today);
+          setSlots(prev => prev.map(s => ({
+            ...s,
+            isAvailable: !todayRes.some(r => r.time === s.time)
+          })));
+        }
+
+        // Fetch Waitlist
+        const { data: wlData, error: wlError } = await supabase
+          .from('waitlist')
+          .select('*')
+          .order('timestamp', { ascending: true });
+        
+        if (!wlError && wlData) {
+          setWaitlist(wlData.map(w => ({
+            ...w,
+            timestamp: new Date(w.timestamp)
+          })));
+        }
+      } catch (err) {
+        console.error('Error fetching from Supabase:', err);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Booking State
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -95,16 +120,37 @@ const App: React.FC = () => {
       totalPaid: calculatedPrice
     };
     
-    setReservations(prev => [...prev, booking]);
-    setSlots(prev => prev.map(s => s.time === selectedTime ? { ...s, isAvailable: false } : s));
-    
-    setLastBooking(booking);
-    setIsSubmitting(false);
-    setShowSuccess(true);
-    
-    setSelectedTime('');
-    setName('');
-    setEmail('');
+    // Save to Supabase
+    try {
+      const { error } = await supabase.from('reservations').insert([{
+        id: booking.id,
+        date: booking.date.toISOString().split('T')[0],
+        time: booking.time,
+        duration: booking.duration,
+        name: booking.name,
+        email: booking.email,
+        notification: booking.notification,
+        player_type: booking.playerType,
+        total_paid: booking.totalPaid
+      }]);
+      
+      if (error) throw error;
+
+      setReservations(prev => [...prev, booking]);
+      setSlots(prev => prev.map(s => s.time === selectedTime ? { ...s, isAvailable: false } : s));
+      
+      setLastBooking(booking);
+      setIsSubmitting(false);
+      setShowSuccess(true);
+      
+      setSelectedTime('');
+      setName('');
+      setEmail('');
+    } catch (err) {
+      console.error('Supabase booking error:', err);
+      alert('Failed to save reservation. Please try again.');
+      setIsSubmitting(false);
+    }
   }, [selectedDate, selectedTime, duration, name, email, notification, playerType, calculatedPrice]);
 
   return (
@@ -413,7 +459,22 @@ const App: React.FC = () => {
       <WaitlistModal 
         isOpen={showWaitlistModal} 
         onClose={() => setShowWaitlistModal(false)} 
-        onJoin={(entry) => setWaitlist(prev => [...prev, entry])}
+        onJoin={async (entry) => {
+          try {
+            const { error } = await supabase.from('waitlist').insert([{
+              id: entry.id,
+              name: entry.name,
+              email: entry.email,
+              phone: entry.phone,
+              timestamp: entry.timestamp.toISOString()
+            }]);
+            if (error) throw error;
+            setWaitlist(prev => [...prev, entry]);
+          } catch (err) {
+            console.error('Supabase waitlist error:', err);
+            alert('Failed to join waitlist. Please try again.');
+          }
+        }}
         waitlistCount={waitlist.length}
       />
       <SuccessModal 
