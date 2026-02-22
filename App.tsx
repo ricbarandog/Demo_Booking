@@ -82,12 +82,12 @@ const App: React.FC = () => {
         const { data: memData, error: memError } = await supabase
           .from('members')
           .select('*')
-          .order('joinedAt', { ascending: true });
+          .order('joined_at', { ascending: true });
         
         if (!memError && memData) {
           setMembers(memData.map(m => ({
             ...m,
-            joinedAt: new Date(m.joinedAt)
+            joinedAt: new Date(m.joined_at)
           })));
         }
       } catch (err) {
@@ -172,9 +172,9 @@ const App: React.FC = () => {
       setSelectedTime('');
       setName('');
       setPhone('');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Supabase booking error:', err);
-      alert('Failed to save reservation. Please check your connection or try again.');
+      alert(`Failed to save reservation: ${err.message || 'Unknown error'}. Ensure the "reservations" table exists in Supabase.`);
       setIsSubmitting(false);
     }
   }, [selectedDate, selectedTime, duration, name, phone, notification, playerType, calculatedPrice, reservations]);
@@ -498,7 +498,7 @@ const App: React.FC = () => {
           const alreadyOnWaitlist = waitlist.some(w => w.phone === entry.phone);
           if (alreadyOnWaitlist) {
             alert('This phone number is already on our waitlist. We will notify you soon!');
-            return;
+            throw new Error('Duplicate waitlist entry');
           }
 
           try {
@@ -525,7 +525,7 @@ const App: React.FC = () => {
           const alreadyMember = members.some(m => m.phone === member.phone);
           if (alreadyMember) {
             alert('This phone number is already registered as an Elite Member.');
-            return;
+            throw new Error('Duplicate member');
           }
 
           try {
@@ -533,13 +533,13 @@ const App: React.FC = () => {
               id: member.id,
               name: member.name,
               phone: member.phone,
-              joinedAt: member.joinedAt.toISOString()
+              joined_at: member.joinedAt.toISOString()
             }]);
             if (error) throw error;
             setMembers(prev => [...prev, member]);
-          } catch (err) {
+          } catch (err: any) {
             console.error('Supabase member sign up error:', err);
-            alert('Failed to register membership. Please try again.');
+            alert(`Failed to register membership: ${err.message || 'Unknown error'}. Ensure the "members" table exists in Supabase.`);
             throw err;
           }
         }}

@@ -6,33 +6,42 @@ import { WaitlistEntry } from '../types';
 interface WaitlistModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoin: (entry: WaitlistEntry) => void;
+  onJoin: (entry: WaitlistEntry) => Promise<void>;
   waitlistCount: number;
 }
 
 const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, waitlistCount }) => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const newEntry: WaitlistEntry = {
       id: `wl-${Date.now()}`,
       name,
       phone,
       timestamp: new Date(),
     };
-    onJoin(newEntry);
-    setSubmitted(true);
-    setTimeout(() => {
-      onClose();
-      setSubmitted(false);
-      setName('');
-      setPhone('');
-    }, 2000);
+    
+    try {
+      await onJoin(newEntry);
+      setSubmitted(true);
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+        setName('');
+        setPhone('');
+      }, 2000);
+    } catch (error) {
+      console.error('Waitlist error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,9 +94,10 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, 
 
               <button 
                 type="submit"
-                className="w-full py-5 bg-[#1B4332] text-white font-bold rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all uppercase text-[10px] tracking-[0.3em]"
+                disabled={isSubmitting}
+                className="w-full py-5 bg-[#1B4332] text-white font-bold rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all uppercase text-[10px] tracking-[0.3em] disabled:opacity-50"
               >
-                Secure My Spot
+                {isSubmitting ? 'Processing...' : 'Secure My Spot'}
               </button>
             </form>
           </>
