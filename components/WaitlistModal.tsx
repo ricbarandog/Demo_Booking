@@ -12,7 +12,6 @@ interface WaitlistModalProps {
 
 const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, waitlistCount }) => {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
@@ -23,7 +22,6 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, 
     const newEntry: WaitlistEntry = {
       id: `wl-${Date.now()}`,
       name,
-      email,
       phone,
       timestamp: new Date(),
     };
@@ -33,7 +31,6 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, 
       onClose();
       setSubmitted(false);
       setName('');
-      setEmail('');
       setPhone('');
     }, 2000);
   };
@@ -61,45 +58,29 @@ const WaitlistModal: React.FC<WaitlistModalProps> = ({ isOpen, onClose, onJoin, 
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Full Name</label>
-                <input 
-                  required
-                  type="text" 
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  className="w-full p-5 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm"
-                  placeholder="Juan Dela Cruz"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Email Address</label>
-                <input 
-                  required
-                  type="email" 
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full p-5 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm"
-                  placeholder="juan@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
-                <input 
-                  required
-                  type="tel" 
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  className="w-full p-5 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm"
-                  placeholder="0912 345 6789"
-                />
-              </div>
-
-              <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-start">
-                <AlertTriangle className="text-amber-600 flex-shrink-0" size={20} />
-                <p className="text-[11px] text-amber-800 leading-relaxed">
-                  <span className="font-bold">Important:</span> A cancellation fee of <span className="font-bold">₱200</span> will be charged for bookings cancelled less than 24 hours in advance.
-                </p>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Full Name</label>
+                  <input 
+                    required
+                    type="text" 
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full p-5 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm"
+                    placeholder="Juan Dela Cruz"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</label>
+                  <input 
+                    required
+                    type="tel" 
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="w-full p-5 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm"
+                    placeholder="0912 345 6789"
+                  />
+                </div>
               </div>
 
               <button 

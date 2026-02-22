@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { TimeSlot, NewsItem, BookingDetails, WaitlistEntry } from '../types.ts';
+import { TimeSlot, NewsItem, BookingDetails, WaitlistEntry, Member } from '../types.ts';
 import { supabase } from '../supabase.ts';
 import { 
   Check, 
@@ -36,6 +36,8 @@ interface AdminDashboardProps {
   setReservations: React.Dispatch<React.SetStateAction<BookingDetails[]>>;
   waitlist: WaitlistEntry[];
   setWaitlist: React.Dispatch<React.SetStateAction<WaitlistEntry[]>>;
+  members: Member[];
+  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
   onClose: () => void;
 }
 
@@ -48,9 +50,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setReservations, 
   waitlist,
   setWaitlist,
+  members,
+  setMembers,
   onClose 
 }) => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal' | 'waitlist'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal' | 'waitlist' | 'members'>('analytics');
   const [editingNews, setEditingNews] = useState<Partial<NewsItem> | null>(null);
   const [viewingReservation, setViewingReservation] = useState<BookingDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,7 +80,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const filteredReservations = useMemo(() => {
     return reservations.filter(res => 
       res.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      res.email.toLowerCase().includes(searchTerm.toLowerCase())
+      res.phone.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [reservations, searchTerm]);
 
@@ -121,6 +125,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
+  const deleteMember = async (id: string) => {
+    if(!confirm("Revoke Elite Membership for this user?")) return;
+    
+    try {
+      const { error } = await supabase.from('members').delete().eq('id', id);
+      if (error) throw error;
+      setMembers(prev => prev.filter(m => m.id !== id));
+    } catch (err) {
+      console.error('Supabase delete member error:', err);
+      alert('Failed to revoke membership in database.');
+    }
+  };
+
   const saveNews = () => {
     if (!editingNews?.title || !editingNews?.description) return;
     if (editingNews.id) {
@@ -139,13 +156,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#FDFCFB] flex flex-col overflow-hidden animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-50 bg-[#FDFCFB] flex flex-col overflow-hidden animate-in fade-in duration-500 font-sans">
       {/* Executive Sidebar/TopNav */}
-      <header className="bg-[#1B4332] text-white px-12 py-8 flex items-center justify-between shadow-2xl relative overflow-hidden">
+      <header className="bg-[#1B4332] text-white px-12 py-8 flex items-center justify-between shadow-2xl relative overflow-hidden border-b border-white/10">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-[#C5A059]/5 skew-x-[45deg] translate-x-1/2"></div>
         
         <div className="flex items-center gap-8 relative z-10">
-          <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10 backdrop-blur-md">
+          <div className="w-16 h-16 bg-white/5 rounded-3xl flex items-center justify-center border border-white/10 backdrop-blur-md shadow-inner">
             <ShieldCheck className="text-[#C5A059]" size={32} />
           </div>
           <div>
@@ -158,7 +175,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="flex bg-black/30 p-2 rounded-[1.5rem] border border-white/5 relative z-10">
-          {(['analytics', 'operations', 'journal', 'waitlist'] as const).map((tab) => (
+          {(['analytics', 'operations', 'journal', 'waitlist', 'members'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -167,7 +184,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {tab === 'analytics' && <TrendingUp size={14} />}
               {tab === 'operations' && <Activity size={14} />}
               {tab === 'journal' && <BookOpen size={14} />}
-              {tab === 'waitlist' && <UserPlus size={14} />}
+              {tab === 'waitlist' && <Users size={14} />}
+              {tab === 'members' && <UserPlus size={14} />}
               {tab}
             </button>
           ))}
@@ -254,7 +272,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </td>
                             <td className="px-10 py-7">
                               <div className="font-bold text-[#1B4332] text-base">{res.name}</div>
-                              <div className="text-[11px] text-[#7D7C7A] font-medium">{res.email}</div>
+                              <div className="text-[11px] text-[#7D7C7A] font-medium">{res.phone}</div>
                             </td>
                             <td className="px-10 py-7">
                               <span className={`px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${res.playerType === 'Member' ? 'bg-[#1B4332]/5 text-[#1B4332]' : 'bg-[#C5A059]/10 text-[#C5A059]'}`}>
@@ -400,6 +418,80 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
+        {activeTab === 'members' && (
+          <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-4xl font-bold text-[#1B4332] tracking-tight mb-2">Elite Members</h2>
+                <p className="text-slate-400 text-sm font-medium uppercase tracking-widest">Verified Yhalason Club Members</p>
+              </div>
+              <div className="flex gap-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search Members..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-12 pr-6 py-4 bg-white border border-[#F0EEEA] rounded-2xl text-xs outline-none focus:ring-4 focus:ring-[#1B4332]/5 w-72 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[3rem] border border-[#F0EEEA] overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Member Name</th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Phone Number</th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">Joined Date</th>
+                    <th className="px-10 py-6 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {members.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.phone.includes(searchTerm)).map((member) => (
+                    <tr key={member.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-10 py-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-[#1B4332]/5 text-[#1B4332] rounded-xl flex items-center justify-center font-bold text-xs">
+                            {member.name.charAt(0)}
+                          </div>
+                          <span className="font-bold text-[#1B4332]">{member.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
+                        <span className="text-slate-500 font-medium">{member.phone}</span>
+                      </td>
+                      <td className="px-10 py-8">
+                        <span className="text-slate-400 text-xs">{format(member.joinedAt, 'MMM do, yyyy')}</span>
+                      </td>
+                      <td className="px-10 py-8 text-right">
+                        <button 
+                          onClick={() => deleteMember(member.id)}
+                          className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {members.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-10 py-20 text-center">
+                        <div className="flex flex-col items-center gap-4 text-slate-300">
+                          <UserPlus size={48} />
+                          <p className="text-sm font-medium">No Elite Members registered yet.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'journal' && (
           <div className="max-w-6xl mx-auto space-y-16 animate-in fade-in slide-in-from-left-8 duration-700">
              <div className="flex justify-between items-center">
@@ -469,7 +561,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         </td>
                         <td className="px-10 py-7">
                           <div className="font-bold text-[#1B4332] text-base">{entry.name}</div>
-                          <div className="text-[11px] text-[#7D7C7A] font-medium">{entry.email} • {entry.phone}</div>
+                          <div className="text-[11px] text-[#7D7C7A] font-medium">{entry.phone}</div>
                         </td>
                         <td className="px-10 py-7 text-slate-400 text-xs">
                           {format(new Date(entry.timestamp), 'MMM d, h:mm a')}
@@ -552,7 +644,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="text-left space-y-8 mb-16">
                 {[
                   { l: 'Member Status', v: viewingReservation.playerType, s: viewingReservation.playerType === 'Member' ? 'text-emerald-500' : 'text-[#C5A059]' },
-                  { l: 'Email Verification', v: viewingReservation.email, s: 'text-[#1B4332]' },
+                  { l: 'Contact Number', v: viewingReservation.phone, s: 'text-[#1B4332]' },
                   { l: 'Designated Schedule', v: `${format(new Date(viewingReservation.date), 'MMMM do')} at ${viewingReservation.time}`, s: 'text-[#1B4332]' },
                   { l: 'Settlement Amount', v: `₱${viewingReservation.totalPaid.toLocaleString()}`, s: 'text-[#1B4332]' }
                 ].map((row, i) => (

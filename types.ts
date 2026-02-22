@@ -16,9 +16,15 @@ export interface NewsItem {
 export interface WaitlistEntry {
   id: string;
   name: string;
-  email: string;
   phone: string;
   timestamp: Date;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  phone: string;
+  joinedAt: Date;
 }
 
 export interface BookingDetails {
@@ -27,8 +33,9 @@ export interface BookingDetails {
   time: string;
   duration: 60 | 90;
   name: string;
-  email: string;
-  notification: 'Email' | 'WhatsApp';
+  phone: string;
+  notification: 'SMS' | 'WhatsApp';
   playerType: 'Member' | 'Guest';
   totalPaid: number;
+  qrCode?: string;
 }

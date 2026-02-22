@@ -22,15 +22,18 @@ import ChatBot from './components/ChatBot.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
 import AdminLogin from './components/AdminLogin.tsx';
 import WaitlistModal from './components/WaitlistModal.tsx';
+import MemberSignUpModal from './components/MemberSignUpModal.tsx';
 import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants.ts';
-import { BookingDetails, TimeSlot, NewsItem, WaitlistEntry } from './types.ts';
+import { BookingDetails, TimeSlot, NewsItem, WaitlistEntry, Member } from './types.ts';
 import { supabase } from './supabase.ts';
 
 const App: React.FC = () => {
   const [slots, setSlots] = useState<TimeSlot[]>(INITIAL_MOCK_SLOTS);
   const [news, setNews] = useState<NewsItem[]>(INITIAL_MOCK_NEWS);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [reservations, setReservations] = useState<BookingDetails[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -74,6 +77,19 @@ const App: React.FC = () => {
             timestamp: new Date(w.timestamp)
           })));
         }
+
+        // Fetch Members
+        const { data: memData, error: memError } = await supabase
+          .from('members')
+          .select('*')
+          .order('joinedAt', { ascending: true });
+        
+        if (!memError && memData) {
+          setMembers(memData.map(m => ({
+            ...m,
+            joinedAt: new Date(m.joinedAt)
+          })));
+        }
       } catch (err) {
         console.error('Error fetching from Supabase:', err);
       }
@@ -88,8 +104,8 @@ const App: React.FC = () => {
   const [duration, setDuration] = useState<60 | 90>(60);
   const [playerType, setPlayerType] = useState<'Member' | 'Guest'>('Guest');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [notification, setNotification] = useState<'Email' | 'WhatsApp'>('Email');
+  const [phone, setPhone] = useState('');
+  const [notification, setNotification] = useState<'SMS' | 'WhatsApp'>('WhatsApp');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastBooking, setLastBooking] = useState<BookingDetails | null>(null);
@@ -103,10 +119,20 @@ const App: React.FC = () => {
 
   const handleBooking = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTime || !name || !email) return;
+    if (!selectedTime || !name || !phone) return;
+
+    // Double Booking Check
+    const isAlreadyBooked = reservations.some(res => 
+      res.date.toDateString() === selectedDate.toDateString() && 
+      res.time === selectedTime
+    );
+
+    if (isAlreadyBooked) {
+      alert('This slot has just been reserved by another player. Please select a different time.');
+      return;
+    }
 
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
     
     const booking: BookingDetails = {
       id: `res-${Date.now()}`,
@@ -114,7 +140,7 @@ const App: React.FC = () => {
       time: selectedTime,
       duration,
       name,
-      email,
+      phone,
       notification,
       playerType,
       totalPaid: calculatedPrice
@@ -128,7 +154,7 @@ const App: React.FC = () => {
         time: booking.time,
         duration: booking.duration,
         name: booking.name,
-        email: booking.email,
+        phone: booking.phone,
         notification: booking.notification,
         player_type: booking.playerType,
         total_paid: booking.totalPaid
@@ -145,13 +171,13 @@ const App: React.FC = () => {
       
       setSelectedTime('');
       setName('');
-      setEmail('');
+      setPhone('');
     } catch (err) {
       console.error('Supabase booking error:', err);
-      alert('Failed to save reservation. Please try again.');
+      alert('Failed to save reservation. Please check your connection or try again.');
       setIsSubmitting(false);
     }
-  }, [selectedDate, selectedTime, duration, name, email, notification, playerType, calculatedPrice]);
+  }, [selectedDate, selectedTime, duration, name, phone, notification, playerType, calculatedPrice, reservations]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFCFB] text-[#1A1A1A]">
@@ -174,6 +200,8 @@ const App: React.FC = () => {
           setReservations={setReservations}
           waitlist={waitlist}
           setWaitlist={setWaitlist}
+          members={members}
+          setMembers={setMembers}
           onClose={() => setIsAdmin(false)} 
         />
       )}
@@ -197,6 +225,12 @@ const App: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowSignUpModal(true)}
+            className="hidden sm:flex px-4 py-2 bg-[#1B4332] text-white rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[#2D5A46] transition-all"
+          >
+            Become a Member
+          </button>
           <button 
             onClick={() => setShowWaitlistModal(true)}
             className="hidden sm:flex px-4 py-2 border border-[#F0EEEA] rounded-full text-[10px] font-bold uppercase tracking-widest text-[#1B4332] hover:bg-slate-50 transition-all"
@@ -308,10 +342,10 @@ const App: React.FC = () => {
                     />
                     <input
                       required
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email Address"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Phone Number (09XX...)"
                       className="px-8 py-5 rounded-3xl border border-[#F0EEEA] bg-white focus:ring-2 focus:ring-[#1B4332]/5 outline-none transition-all text-sm font-medium"
                     />
                   </div>
@@ -365,7 +399,7 @@ const App: React.FC = () => {
 
                 <button
                   onClick={handleBooking}
-                  disabled={isSubmitting || !selectedTime || !name || !email}
+                  disabled={isSubmitting || !selectedTime || !name || !phone}
                   className="w-full py-6 bg-[#C5A059] text-white font-bold rounded-[1.5rem] hover:bg-[#D4B36F] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[#C5A059]/20 disabled:opacity-30 flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.3em]"
                 >
                   {isSubmitting ? 'Authenticating...' : 'Complete Reservation'}
@@ -460,11 +494,17 @@ const App: React.FC = () => {
         isOpen={showWaitlistModal} 
         onClose={() => setShowWaitlistModal(false)} 
         onJoin={async (entry) => {
+          // Double Sign Up Check
+          const alreadyOnWaitlist = waitlist.some(w => w.phone === entry.phone);
+          if (alreadyOnWaitlist) {
+            alert('This phone number is already on our waitlist. We will notify you soon!');
+            return;
+          }
+
           try {
             const { error } = await supabase.from('waitlist').insert([{
               id: entry.id,
               name: entry.name,
-              email: entry.email,
               phone: entry.phone,
               timestamp: entry.timestamp.toISOString()
             }]);
@@ -472,10 +512,37 @@ const App: React.FC = () => {
             setWaitlist(prev => [...prev, entry]);
           } catch (err) {
             console.error('Supabase waitlist error:', err);
-            alert('Failed to join waitlist. Please try again.');
+            alert('Failed to join waitlist. Please check if the database table exists.');
           }
         }}
         waitlistCount={waitlist.length}
+      />
+      <MemberSignUpModal 
+        isOpen={showSignUpModal}
+        onClose={() => setShowSignUpModal(false)}
+        onSignUp={async (member) => {
+          // Double Sign Up Check
+          const alreadyMember = members.some(m => m.phone === member.phone);
+          if (alreadyMember) {
+            alert('This phone number is already registered as an Elite Member.');
+            return;
+          }
+
+          try {
+            const { error } = await supabase.from('members').insert([{
+              id: member.id,
+              name: member.name,
+              phone: member.phone,
+              joinedAt: member.joinedAt.toISOString()
+            }]);
+            if (error) throw error;
+            setMembers(prev => [...prev, member]);
+          } catch (err) {
+            console.error('Supabase member sign up error:', err);
+            alert('Failed to register membership. Please try again.');
+            throw err;
+          }
+        }}
       />
       <SuccessModal 
         isOpen={showSuccess} 
