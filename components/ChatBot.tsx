@@ -41,8 +41,8 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
     setIsLoading(true);
 
     try {
-      // Create a new instance right before use as per guidelines
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      // Create a new instance right before use as per guidelines, using process.env.API_KEY directly
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const availableSlots = slots.filter(s => s.isAvailable).map(s => s.time).join(', ');
       
       const systemInstruction = `

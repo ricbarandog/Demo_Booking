@@ -1,9 +1,7 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
-  Calendar, 
   User, 
-  Bell, 
   LayoutGrid, 
   Clock, 
   Mail, 
@@ -12,7 +10,10 @@ import {
   ShieldCheck, 
   ChevronRight, 
   CreditCard,
-  Trophy
+  Trophy,
+  Menu,
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import BookingCalendar from './components/BookingCalendar.tsx';
 import SuccessModal from './components/SuccessModal.tsx';
@@ -24,7 +25,6 @@ import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants.t
 import { BookingDetails, TimeSlot, NewsItem } from './types.ts';
 
 const App: React.FC = () => {
-  // Master State
   const [slots, setSlots] = useState<TimeSlot[]>(INITIAL_MOCK_SLOTS);
   const [news, setNews] = useState<NewsItem[]>(INITIAL_MOCK_NEWS);
   const [reservations, setReservations] = useState<BookingDetails[]>([
@@ -35,7 +35,9 @@ const App: React.FC = () => {
       duration: 90,
       name: 'Julianne Moore',
       email: 'j.moore@example.com',
-      notification: 'Email'
+      notification: 'Email',
+      playerType: 'Member',
+      totalPaid: 60
     },
     {
       id: 'res-2',
@@ -44,7 +46,9 @@ const App: React.FC = () => {
       duration: 60,
       name: 'Robert De Niro',
       email: 'bob@hollywood.com',
-      notification: 'WhatsApp'
+      notification: 'WhatsApp',
+      playerType: 'Guest',
+      totalPaid: 75
     }
   ]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -54,12 +58,20 @@ const App: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [duration, setDuration] = useState<60 | 90>(60);
+  const [playerType, setPlayerType] = useState<'Member' | 'Guest'>('Guest');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [notification, setNotification] = useState<'Email' | 'WhatsApp'>('Email');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastBooking, setLastBooking] = useState<BookingDetails | null>(null);
+
+  const calculatedPrice = useMemo(() => {
+    const hourlyRate = playerType === 'Member' ? CLUB_RATES.member : CLUB_RATES.nonMember;
+    const durationMultiplier = duration / 60;
+    const guestFee = playerType === 'Guest' ? CLUB_RATES.guestFee : 0;
+    return (hourlyRate * durationMultiplier) + guestFee;
+  }, [playerType, duration]);
 
   const handleBooking = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +87,9 @@ const App: React.FC = () => {
       duration,
       name,
       email,
-      notification
+      notification,
+      playerType,
+      totalPaid: calculatedPrice
     };
     
     setReservations(prev => [...prev, booking]);
@@ -88,10 +102,10 @@ const App: React.FC = () => {
     setSelectedTime('');
     setName('');
     setEmail('');
-  }, [selectedDate, selectedTime, duration, name, email, notification]);
+  }, [selectedDate, selectedTime, duration, name, email, notification, playerType, calculatedPrice]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fcfdfc] scroll-smooth">
+    <div className="min-h-screen flex flex-col bg-[#FDFCFB] text-[#1A1A1A]">
       <AdminLogin 
         isOpen={showLogin} 
         onClose={() => setShowLogin(false)} 
@@ -113,240 +127,277 @@ const App: React.FC = () => {
         />
       )}
 
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#1b4332] rounded-lg flex items-center justify-center">
-            <LayoutGrid className="text-white" size={18} />
+      {/* Modern Slim Header */}
+      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-[#F0EEEA] px-8 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-4 group cursor-pointer">
+          <div className="w-10 h-10 bg-[#1B4332] rounded-full flex items-center justify-center transition-transform group-hover:rotate-12">
+            <Trophy className="text-[#C5A059]" size={20} />
           </div>
-          <span className="font-bold text-xl tracking-tight text-[#1b4332]">Yhalason <span className="font-light">Club</span></span>
+          <div className="flex flex-col">
+            <span className="font-bold text-lg tracking-tight leading-none text-[#1B4332]">YHALASON</span>
+            <span className="text-[9px] uppercase tracking-[0.4em] font-semibold text-[#C5A059] mt-1">Court Club</span>
+          </div>
         </div>
-        <nav className="hidden md:flex gap-8 text-sm font-medium text-slate-600">
-          <a href="#book" className="hover:text-[#1b4332] transition-colors">Reserve</a>
-          <a href="#rates" className="hover:text-[#1b4332] transition-colors">Rates</a>
-          <a href="#news" className="hover:text-[#1b4332] transition-colors">The Journal</a>
+        
+        <nav className="hidden lg:flex gap-12 text-[10px] font-bold uppercase tracking-[0.2em] text-[#8C8B88]">
+          <a href="#book" className="hover:text-[#1B4332] transition-all">Reservations</a>
+          <a href="#rates" className="hover:text-[#1B4332] transition-all">The Club</a>
+          <a href="#news" className="hover:text-[#1B4332] transition-all">The Journal</a>
         </nav>
+
         <div className="flex items-center gap-3">
-          <button className="hidden sm:flex p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
-            <Bell size={18} className="text-[#1b4332]" />
+          <button className="hidden sm:flex px-4 py-2 border border-[#F0EEEA] rounded-full text-[10px] font-bold uppercase tracking-widest text-[#1B4332] hover:bg-slate-50 transition-all">
+            Join Waitlist
           </button>
-          <button className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
-            <User size={20} className="text-[#1b4332]" />
+          <button className="p-2.5 text-[#1B4332] hover:bg-slate-100 rounded-full transition-all">
+            <User size={20} />
           </button>
         </div>
       </header>
 
-      <main className="flex-grow max-w-2xl mx-auto w-full px-6 py-8">
-        <section className="mb-12 text-center sm:text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#e0f2fe] rounded-full text-[#0369a1] text-[10px] font-bold uppercase tracking-widest mb-4">
-            <MapPin size={12} />
-            Barangay Yhalason
+      <main className="flex-grow">
+        {/* Cinematic Hero */}
+        <section className="pt-24 pb-32 px-6 text-center bg-gradient-to-b from-white to-[#FDFCFB]">
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-3 px-5 py-2 bg-white border border-[#F0EEEA] rounded-full text-[#C5A059] text-[9px] font-bold uppercase tracking-[0.3em] mb-10 shadow-sm animate-fade-in">
+              <Sparkles size={12} className="animate-pulse" />
+              Barangay Yhalason Elite Estate
+            </div>
+            <h1 className="text-6xl md:text-8xl mb-8 text-[#1B4332] leading-[0.95] font-serif tracking-tight">
+              Sophistication <br/><span className="italic text-[#C5A059]">Refined.</span>
+            </h1>
+            <p className="text-[#7D7C7A] font-light text-xl max-w-2xl mx-auto leading-relaxed opacity-80">
+              The premier destination for the contemporary athlete. Bespoke court management at the heart of Barangay Yhalason.
+            </p>
           </div>
-          <h1 className="text-4xl sm:text-5xl mb-4 text-[#1b4332]">Elegance In Every Swing.</h1>
-          <p className="text-slate-500 font-light text-lg">
-            Experience the pinnacle of court play at Yhalason. Pro-grade surfaces, elite amenities, and a community dedicated to excellence.
-          </p>
         </section>
 
-        <section id="book" className="space-y-8 mb-20">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-[#1b4332] rounded-full"></div>
-            <h2 className="text-2xl font-bold text-[#1b4332]">Reservation Desk</h2>
-          </div>
+        <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-12 gap-16 pb-40">
+          {/* Reservation Panel */}
+          <div className="lg:col-span-7 space-y-16">
+            <div id="book" className="scroll-mt-32">
+              <div className="flex items-center gap-4 mb-12">
+                <span className="text-[#C5A059] font-serif italic text-4xl">01.</span>
+                <h2 className="text-3xl font-bold text-[#1B4332] tracking-tight">Select Your Session</h2>
+              </div>
 
-          <form onSubmit={handleBooking} className="space-y-8">
-            <div className="space-y-3">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 block ml-1">1. Choose Your Date</label>
-              <BookingCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">2. Select Session & Duration</label>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                  {[60, 90].map((d) => (
-                    <button 
-                      key={d}
-                      type="button"
-                      onClick={() => setDuration(d as 60 | 90)}
-                      className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${duration === d ? 'bg-white shadow-sm text-[#1b4332]' : 'text-slate-400'}`}
-                    >
-                      {d}m
-                    </button>
-                  ))}
+              <form onSubmit={handleBooking} className="space-y-12">
+                <div className="space-y-6">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#A8A7A5] flex items-center gap-2">
+                    <Calendar size={14} className="text-[#C5A059]" /> Preferred Date
+                  </label>
+                  <BookingCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    disabled={!slot.isAvailable}
-                    onClick={() => setSelectedTime(slot.time)}
-                    className={`
-                      relative py-4 px-2 rounded-2xl border text-sm font-semibold flex flex-col items-center justify-center transition-all
-                      ${!slot.isAvailable ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed' : 
-                        selectedTime === slot.time ? 'bg-[#1b4332] text-white border-[#1b4332] shadow-lg shadow-[#1b4332]/20' : 
-                        'bg-white text-slate-700 border-slate-100 hover:border-[#1b4332]'}
-                    `}
-                  >
-                    <Clock size={16} className={`mb-1 ${selectedTime === slot.time ? 'text-white' : 'text-[#1b4332]'}`} />
-                    {slot.time}
-                    {!slot.isAvailable && <span className="text-[9px] uppercase mt-1 opacity-60">Reserved</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">3. Player Verification</label>
-              <div className="space-y-3">
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    required
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Full Name"
-                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-2 focus:ring-[#1b4332] focus:border-transparent transition-all"
-                  />
-                </div>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email Address"
-                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-100 bg-white focus:outline-none focus:ring-2 focus:ring-[#1b4332] focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-xs font-bold uppercase tracking-widest text-slate-400 ml-1">4. Notification Preference</label>
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={() => setNotification('Email')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all ${notification === 'Email' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-white border-slate-100 text-slate-500'}`}
-                >
-                  <Mail size={18} />
-                  Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNotification('WhatsApp')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border transition-all ${notification === 'WhatsApp' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : 'bg-white border-slate-100 text-slate-500'}`}
-                >
-                  <MessageCircle size={18} />
-                  WhatsApp
-                </button>
-              </div>
-            </div>
-
-            <button
-              disabled={isSubmitting || !selectedTime || !name || !email}
-              className={`
-                w-full py-5 rounded-[2rem] font-bold text-lg shadow-xl transition-all active:scale-95
-                ${isSubmitting ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-[#1b4332] text-white hover:scale-[1.01] shadow-[#1b4332]/20'}
-              `}
-            >
-              {isSubmitting ? 'Finalizing...' : 'Request Booking'}
-            </button>
-          </form>
-        </section>
-
-        <section id="rates" className="mb-20">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-6 bg-[#1b4332] rounded-full"></div>
-            <h2 className="text-2xl font-bold text-[#1b4332]">Club Rates</h2>
-          </div>
-          <div className="bg-emerald-50/50 rounded-[2.5rem] p-8 border border-emerald-100/50">
-            <div className="grid md:grid-cols-2 gap-10">
-              <div className="space-y-6">
-                <div>
-                  <div className="flex items-center gap-2 text-[#1b4332] font-bold text-sm mb-4">
-                    <CreditCard size={18} />
-                    Hourly Play
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-emerald-100/30">
-                      <span className="text-slate-500 font-medium">Club Member</span>
-                      <span className="text-[#1b4332] font-bold">${CLUB_RATES.member}/hr</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-emerald-100/30">
-                      <span className="text-slate-500 font-medium">Non-Member</span>
-                      <span className="text-[#1b4332] font-bold">${CLUB_RATES.nonMember}/hr</span>
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-[#A8A7A5] flex items-center gap-2">
+                      <Clock size={14} className="text-[#C5A059]" /> Available Slots
+                    </label>
+                    <div className="flex bg-[#F5F4F0] p-1.5 rounded-2xl border border-[#F0EEEA]">
+                      {[60, 90].map((d) => (
+                        <button 
+                          key={d}
+                          type="button"
+                          onClick={() => setDuration(d as 60 | 90)}
+                          className={`px-6 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${duration === d ? 'bg-[#1B4332] text-white shadow-lg' : 'text-[#7D7C7A] hover:text-[#1B4332]'}`}
+                        >
+                          {d} Min
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
-                <div className="flex justify-between items-center px-4 text-sm">
-                  <span className="text-slate-400">Guest Pass Fee</span>
-                  <span className="text-slate-500 font-bold">${CLUB_RATES.guestFee}/visit</span>
-                </div>
-              </div>
-              <div className="bg-[#1b4332] rounded-[2rem] p-8 text-white flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-[10px] uppercase tracking-widest mb-4">
-                    <Trophy size={16} />
-                    Exclusive Benefits
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        disabled={!slot.isAvailable}
+                        onClick={() => setSelectedTime(slot.time)}
+                        className={`
+                          py-6 rounded-3xl border text-xs font-bold transition-all flex flex-col items-center gap-2 group
+                          ${!slot.isAvailable ? 'bg-slate-50 text-slate-300 border-slate-100' : 
+                            selectedTime === slot.time ? 'bg-[#1B4332] text-white border-[#1B4332] shadow-2xl ring-4 ring-[#1B4332]/5' : 
+                            'bg-white text-[#1B4332] border-[#F0EEEA] hover:border-[#C5A059] hover:bg-slate-50'}
+                        `}
+                      >
+                        {slot.time}
+                        {!slot.isAvailable && <span className="text-[8px] opacity-40 uppercase tracking-widest">Reserved</span>}
+                      </button>
+                    ))}
                   </div>
-                  <h3 className="text-xl font-bold mb-4">Become a Member</h3>
-                  <p className="text-emerald-100/70 text-sm font-light leading-relaxed">
-                    Enjoy priority 14-day advance booking, inclusive guest passes monthly, and access to our sunset court tournaments.
-                  </p>
                 </div>
-                <button className="mt-8 group flex items-center gap-2 text-sm font-bold text-white hover:text-emerald-300 transition-colors">
-                  Inquire about membership
-                  <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+
+                <div className="space-y-6">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#A8A7A5]">02. Personal Verification</label>
+                  <div className="flex gap-4 p-1.5 bg-[#F5F4F0] rounded-[2rem] border border-[#F0EEEA]">
+                     {['Member', 'Guest'].map((t) => (
+                        <button 
+                          key={t}
+                          type="button"
+                          onClick={() => setPlayerType(t as any)}
+                          className={`flex-1 py-4 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all ${playerType === t ? 'bg-white shadow-md text-[#1B4332]' : 'text-[#7D7C7A]'}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <input
+                      required
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Full Name"
+                      className="px-8 py-5 rounded-3xl border border-[#F0EEEA] bg-white focus:ring-2 focus:ring-[#1B4332]/5 outline-none transition-all text-sm font-medium"
+                    />
+                    <input
+                      required
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email Address"
+                      className="px-8 py-5 rounded-3xl border border-[#F0EEEA] bg-white focus:ring-2 focus:ring-[#1B4332]/5 outline-none transition-all text-sm font-medium"
+                    />
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Premium Sticky Sidebar */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-32">
+              <div className="bg-[#1B4332] text-white rounded-[3rem] p-12 shadow-[0_50px_100px_-20px_rgba(27,67,50,0.3)] relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#C5A059]/10 rounded-full -mr-32 -mt-32 blur-[100px] group-hover:bg-[#C5A059]/20 transition-all duration-1000"></div>
+                
+                <h3 className="text-2xl font-bold mb-10 flex items-center gap-4 font-serif">
+                   Court Statement
+                </h3>
+
+                <div className="space-y-8 mb-12">
+                  <div className="flex justify-between items-end border-b border-white/10 pb-6">
+                    <div>
+                      <p className="text-white/40 text-[9px] uppercase tracking-widest font-bold mb-1">Standard Rate</p>
+                      <p className="text-sm font-bold">{playerType === 'Member' ? 'Elite Member' : 'Guest Pass'}</p>
+                    </div>
+                    <p className="text-xl font-serif">${playerType === 'Member' ? CLUB_RATES.member : CLUB_RATES.nonMember}</p>
+                  </div>
+                  
+                  <div className="flex justify-between items-end border-b border-white/10 pb-6">
+                    <div>
+                      <p className="text-white/40 text-[9px] uppercase tracking-widest font-bold mb-1">Session Duration</p>
+                      <p className="text-sm font-bold">{duration} Minutes</p>
+                    </div>
+                    <p className="text-lg font-serif">x{duration/60}</p>
+                  </div>
+
+                  {playerType === 'Guest' && (
+                    <div className="flex justify-between items-end border-b border-white/10 pb-6">
+                      <div>
+                        <p className="text-[#C5A059] text-[9px] uppercase tracking-widest font-bold mb-1">Facility Access Fee</p>
+                        <p className="text-sm font-bold italic">Standard Non-Member</p>
+                      </div>
+                      <p className="text-lg font-serif text-[#C5A059]">+${CLUB_RATES.guestFee}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-baseline mb-12">
+                  <span className="text-white/60 text-xs font-medium uppercase tracking-[0.2em]">Investment</span>
+                  <span className="text-5xl font-serif text-[#C5A059]">${calculatedPrice.toFixed(2)}</span>
+                </div>
+
+                <button
+                  onClick={handleBooking}
+                  disabled={isSubmitting || !selectedTime || !name || !email}
+                  className="w-full py-6 bg-[#C5A059] text-white font-bold rounded-[1.5rem] hover:bg-[#D4B36F] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[#C5A059]/20 disabled:opacity-30 flex items-center justify-center gap-3 uppercase text-[10px] tracking-[0.3em]"
+                >
+                  {isSubmitting ? 'Authenticating...' : 'Complete Reservation'}
+                  {!isSubmitting && <ChevronRight size={16} />}
                 </button>
               </div>
-            </div>
-          </div>
-        </section>
 
-        <section id="news" className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-[#1b4332] rounded-full"></div>
-              <h2 className="text-2xl font-bold text-[#1b4332]">The Journal</h2>
+              <div className="mt-8 px-6 flex items-center gap-4 text-[#A8A7A5]">
+                <ShieldCheck size={24} className="text-[#C5A059]" />
+                <p className="text-[10px] font-medium leading-relaxed uppercase tracking-widest">
+                  Reservations are final. Professional attire required on all Yhalason surfaces.
+                </p>
+              </div>
             </div>
-            <button className="text-sm font-bold text-[#1b4332] hover:underline transition-all">Archive</button>
           </div>
-          
-          <div className="flex overflow-x-auto gap-5 pb-6 snap-x no-scrollbar">
-            {news.map((item) => (
-              <NewsCard key={item.id} item={item} />
-            ))}
+        </div>
+
+        {/* Minimal News Journal */}
+        <section id="news" className="bg-[#1B4332] py-40">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <span className="text-[#C5A059] font-serif italic text-4xl">02.</span>
+                  <h2 className="text-4xl font-bold text-white tracking-tight">The Yhalason Journal</h2>
+                </div>
+                <p className="text-white/40 max-w-md text-sm leading-relaxed">
+                  Inside stories from our elite coaching staff and exclusive updates on club facility enhancements.
+                </p>
+              </div>
+              <button className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C5A059] hover:text-white transition-colors border-b border-[#C5A059] pb-2">
+                Browse Archive
+              </button>
+            </div>
+            
+            <div className="flex overflow-x-auto gap-8 pb-10 snap-x no-scrollbar">
+              {news.map((item) => (
+                <NewsCard key={item.id} item={item} />
+              ))}
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="bg-slate-50 border-t border-slate-100 px-6 py-16 text-center">
-        <div className="mb-8">
-          <span className="font-bold text-xl tracking-tight text-[#1b4332]">Yhalason <span className="font-light">Court Club</span></span>
-          <p className="text-slate-400 text-sm mt-2 max-w-xs mx-auto font-light">
-            Providing Westchester with premium court experiences since 1994.
+      <footer className="bg-[#FDFCFB] pt-32 pb-20 px-6 border-t border-[#F0EEEA]">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start gap-20">
+          <div className="max-w-xs space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#1B4332] rounded-lg flex items-center justify-center">
+                <Trophy className="text-[#C5A059]" size={16} />
+              </div>
+              <span className="font-bold text-lg tracking-tight text-[#1B4332]">YHALASON</span>
+            </div>
+            <p className="text-[#7D7C7A] text-sm leading-relaxed font-light">
+              Redefining the standard of private court access in Barangay Yhalason. Experience the legacy of excellence.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-20">
+            <div className="space-y-6">
+              <h5 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#1B4332]">Engagement</h5>
+              <ul className="space-y-4 text-sm text-[#7D7C7A]">
+                <li><a href="#" className="hover:text-[#1B4332] transition-colors">Waitlist Inquiry</a></li>
+                <li><a href="#" className="hover:text-[#1B4332] transition-colors">Member Benefits</a></li>
+                <li><a href="#" className="hover:text-[#1B4332] transition-colors">Corporate Hosting</a></li>
+              </ul>
+            </div>
+            <div className="space-y-6">
+              <h5 className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#1B4332]">Legal</h5>
+              <ul className="space-y-4 text-sm text-[#7D7C7A]">
+                <li><a href="#" className="hover:text-[#1B4332] transition-colors">House Rules</a></li>
+                <li><a href="#" className="hover:text-[#1B4332] transition-colors">Privacy Charter</a></li>
+                <li><button onClick={() => setShowLogin(true)} className="text-[#C5A059] hover:underline uppercase text-[10px] font-bold tracking-widest">Steward Login</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <div className="max-w-6xl mx-auto mt-32 pt-12 border-t border-[#F0EEEA] flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-[9px] uppercase tracking-[0.4em] text-[#A8A7A5]">
+            &copy; 2024 Yhalason Private Holdings. All Sessions Recorded.
           </p>
-        </div>
-        <div className="flex justify-center gap-6 mb-10 text-slate-300">
-          <a href="#" className="p-3 bg-white rounded-full shadow-sm hover:text-[#1b4332] transition-colors"><Mail size={20} /></a>
-          <a href="#" className="p-3 bg-white rounded-full shadow-sm hover:text-[#1b4332] transition-colors"><User size={20} /></a>
-          <button 
-            onClick={() => setShowLogin(true)} 
-            className="p-3 bg-white rounded-full shadow-sm text-slate-100 hover:text-slate-200 transition-colors opacity-20 hover:opacity-100"
-            title="Secure Access"
-          >
-            <ShieldCheck size={20} />
-          </button>
-        </div>
-        <div className="space-y-1">
-          <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em]">&copy; 2024 Yhalason Court Club Management</p>
-          <p className="text-slate-300 text-[9px] uppercase tracking-widest">Designed for Distinction</p>
+          <div className="flex gap-8">
+             <a href="#" className="text-[#A8A7A5] hover:text-[#1B4332] transition-colors"><MessageCircle size={18}/></a>
+             <a href="#" className="text-[#A8A7A5] hover:text-[#1B4332] transition-colors"><Mail size={18}/></a>
+          </div>
         </div>
       </footer>
 

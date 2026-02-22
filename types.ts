@@ -21,4 +21,6 @@ export interface BookingDetails {
   name: string;
   email: string;
   notification: 'Email' | 'WhatsApp';
+  playerType: 'Member' | 'Guest';
+  totalPaid: number;
 }
