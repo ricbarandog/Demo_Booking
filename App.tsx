@@ -21,12 +21,15 @@ import NewsCard from './components/NewsCard.tsx';
 import ChatBot from './components/ChatBot.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
 import AdminLogin from './components/AdminLogin.tsx';
+import WaitlistModal from './components/WaitlistModal.tsx';
 import { INITIAL_MOCK_SLOTS, INITIAL_MOCK_NEWS, CLUB_RATES } from './constants.ts';
-import { BookingDetails, TimeSlot, NewsItem } from './types.ts';
+import { BookingDetails, TimeSlot, NewsItem, WaitlistEntry } from './types.ts';
 
 const App: React.FC = () => {
   const [slots, setSlots] = useState<TimeSlot[]>(INITIAL_MOCK_SLOTS);
   const [news, setNews] = useState<NewsItem[]>(INITIAL_MOCK_NEWS);
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [reservations, setReservations] = useState<BookingDetails[]>([
     {
       id: 'res-1',
@@ -123,6 +126,8 @@ const App: React.FC = () => {
           setNews={setNews}
           reservations={reservations}
           setReservations={setReservations}
+          waitlist={waitlist}
+          setWaitlist={setWaitlist}
           onClose={() => setIsAdmin(false)} 
         />
       )}
@@ -146,7 +151,10 @@ const App: React.FC = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <button className="hidden sm:flex px-4 py-2 border border-[#F0EEEA] rounded-full text-[10px] font-bold uppercase tracking-widest text-[#1B4332] hover:bg-slate-50 transition-all">
+          <button 
+            onClick={() => setShowWaitlistModal(true)}
+            className="hidden sm:flex px-4 py-2 border border-[#F0EEEA] rounded-full text-[10px] font-bold uppercase tracking-widest text-[#1B4332] hover:bg-slate-50 transition-all"
+          >
             Join Waitlist
           </button>
           <button className="p-2.5 text-[#1B4332] hover:bg-slate-100 rounded-full transition-all">
@@ -161,7 +169,7 @@ const App: React.FC = () => {
           <div className="max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-3 px-5 py-2 bg-white border border-[#F0EEEA] rounded-full text-[#C5A059] text-[9px] font-bold uppercase tracking-[0.3em] mb-10 shadow-sm animate-fade-in">
               <Sparkles size={12} className="animate-pulse" />
-              Barangay Yhalason Elite Estate
+              Barangay Yhalason Elite Grounds
             </div>
             <h1 className="text-6xl md:text-8xl mb-8 text-[#1B4332] leading-[0.95] font-serif tracking-tight">
               Sophistication <br/><span className="italic text-[#C5A059]">Refined.</span>
@@ -282,7 +290,7 @@ const App: React.FC = () => {
                       <p className="text-white/40 text-[9px] uppercase tracking-widest font-bold mb-1">Standard Rate</p>
                       <p className="text-sm font-bold">{playerType === 'Member' ? 'Elite Member' : 'Guest Pass'}</p>
                     </div>
-                    <p className="text-xl font-serif">${playerType === 'Member' ? CLUB_RATES.member : CLUB_RATES.nonMember}</p>
+                    <p className="text-xl font-serif">₱{playerType === 'Member' ? CLUB_RATES.member : CLUB_RATES.nonMember}</p>
                   </div>
                   
                   <div className="flex justify-between items-end border-b border-white/10 pb-6">
@@ -299,14 +307,14 @@ const App: React.FC = () => {
                         <p className="text-[#C5A059] text-[9px] uppercase tracking-widest font-bold mb-1">Facility Access Fee</p>
                         <p className="text-sm font-bold italic">Standard Non-Member</p>
                       </div>
-                      <p className="text-lg font-serif text-[#C5A059]">+${CLUB_RATES.guestFee}</p>
+                      <p className="text-lg font-serif text-[#C5A059]">+₱{CLUB_RATES.guestFee}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="flex justify-between items-baseline mb-12">
                   <span className="text-white/60 text-xs font-medium uppercase tracking-[0.2em]">Investment</span>
-                  <span className="text-5xl font-serif text-[#C5A059]">${calculatedPrice.toFixed(2)}</span>
+                  <span className="text-5xl font-serif text-[#C5A059]">₱{calculatedPrice.toLocaleString()}</span>
                 </div>
 
                 <button
@@ -402,6 +410,12 @@ const App: React.FC = () => {
       </footer>
 
       <ChatBot slots={slots} news={news} />
+      <WaitlistModal 
+        isOpen={showWaitlistModal} 
+        onClose={() => setShowWaitlistModal(false)} 
+        onJoin={(entry) => setWaitlist(prev => [...prev, entry])}
+        waitlistCount={waitlist.length}
+      />
       <SuccessModal 
         isOpen={showSuccess} 
         onClose={() => setShowSuccess(false)} 

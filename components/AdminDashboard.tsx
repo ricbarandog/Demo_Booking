@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { TimeSlot, NewsItem, BookingDetails } from '../types.ts';
+import { TimeSlot, NewsItem, BookingDetails, WaitlistEntry } from '../types.ts';
 import { 
   Check, 
   X, 
@@ -21,7 +21,8 @@ import {
   Search,
   Filter,
   Download,
-  BookOpen
+  BookOpen,
+  UserPlus
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -32,6 +33,8 @@ interface AdminDashboardProps {
   setNews: React.Dispatch<React.SetStateAction<NewsItem[]>>;
   reservations: BookingDetails[];
   setReservations: React.Dispatch<React.SetStateAction<BookingDetails[]>>;
+  waitlist: WaitlistEntry[];
+  setWaitlist: React.Dispatch<React.SetStateAction<WaitlistEntry[]>>;
   onClose: () => void;
 }
 
@@ -42,9 +45,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setNews, 
   reservations, 
   setReservations, 
+  waitlist,
+  setWaitlist,
   onClose 
 }) => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal' | 'waitlist'>('analytics');
   const [editingNews, setEditingNews] = useState<Partial<NewsItem> | null>(null);
   const [viewingReservation, setViewingReservation] = useState<BookingDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,6 +97,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setNews(prev => prev.filter(n => n.id !== id));
   };
 
+  const deleteWaitlistEntry = (id: string) => {
+    if(!confirm("Remove this person from the waitlist?")) return;
+    setWaitlist(prev => prev.filter(w => w.id !== id));
+  };
+
   const saveNews = () => {
     if (!editingNews?.title || !editingNews?.description) return;
     if (editingNews.id) {
@@ -129,7 +139,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="flex bg-black/30 p-2 rounded-[1.5rem] border border-white/5 relative z-10">
-          {(['analytics', 'operations', 'journal'] as const).map((tab) => (
+          {(['analytics', 'operations', 'journal', 'waitlist'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -138,6 +148,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {tab === 'analytics' && <TrendingUp size={14} />}
               {tab === 'operations' && <Activity size={14} />}
               {tab === 'journal' && <BookOpen size={14} />}
+              {tab === 'waitlist' && <UserPlus size={14} />}
               {tab}
             </button>
           ))}
@@ -158,9 +169,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             {/* Sales Dashboard Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { label: 'Gross Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-600', trend: '+14.2%', desc: 'Current Month' },
+                { label: 'Gross Revenue', value: `₱${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-600', trend: '+14.2%', desc: 'Current Month' },
                 { label: 'Club Velocity', value: `${stats.count} S/m`, icon: Activity, color: 'text-[#C5A059]', trend: '+8%', desc: 'Sessions per month' },
-                { label: 'Member LTV', value: `$${stats.avgBookingValue.toFixed(0)}`, icon: Users, color: 'text-blue-600', trend: '+2.1%', desc: 'Average Ticket' },
+                { label: 'Member LTV', value: `₱${stats.avgBookingValue.toFixed(0)}`, icon: Users, color: 'text-blue-600', trend: '+2.1%', desc: 'Average Ticket' },
                 { label: 'Utilization', value: `${stats.capacityRate.toFixed(1)}%`, icon: TrendingUp, color: 'text-indigo-600', trend: '-0.4%', desc: 'Court Occupancy' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-10 rounded-[3rem] border border-[#F0EEEA] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
@@ -232,7 +243,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                               </span>
                             </td>
                             <td className="px-10 py-7 text-right font-serif text-[#1B4332] text-xl">
-                              ${(res.totalPaid || 0).toFixed(2)}
+                              ₱{(res.totalPaid || 0).toLocaleString()}
                             </td>
                             <td className="px-10 py-7 text-center">
                               <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -272,7 +283,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             <seg.icon size={16} className={seg.color.replace('bg-', 'text-')} />
                             <span>{seg.label}</span>
                           </div>
-                          <span className="text-[#1B4332] text-sm">${seg.amount.toLocaleString()}</span>
+                          <span className="text-[#1B4332] text-sm">₱{seg.amount.toLocaleString()}</span>
                         </div>
                         <div className="h-4 w-full bg-slate-50 rounded-full overflow-hidden shadow-inner">
                           <div 
@@ -291,7 +302,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                    <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-[#C5A059]/20 rounded-full blur-[80px] group-hover:scale-150 transition-transform duration-1000"></div>
                    
                    <h4 className="text-white/40 text-[10px] font-bold uppercase tracking-[0.4em] mb-4 relative z-10">Yield Projection</h4>
-                   <p className="text-5xl font-serif text-[#C5A059] relative z-10">${(stats.totalRevenue * 1.5).toLocaleString()}</p>
+                   <p className="text-5xl font-serif text-[#C5A059] relative z-10">₱{(stats.totalRevenue * 1.5).toLocaleString()}</p>
                    <div className="mt-8 flex items-center gap-3 text-emerald-400 text-xs font-bold relative z-10">
                       <TrendingUp size={16} /> Projected Growth: +50% Q4
                    </div>
@@ -406,6 +417,60 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
              </div>
           </div>
         )}
+
+        {activeTab === 'waitlist' && (
+          <div className="max-w-6xl mx-auto space-y-16 animate-in fade-in slide-in-from-top-8 duration-700">
+            <div className="flex justify-between items-center">
+              <h3 className="text-3xl font-bold text-[#1B4332] font-serif italic flex items-center gap-4">
+                <UserPlus className="text-[#C5A059]" /> Waitlist Management
+              </h3>
+              <div className="px-6 py-3 bg-[#C5A059]/10 text-[#C5A059] rounded-2xl text-[10px] font-bold uppercase tracking-widest">
+                Total Queue: {waitlist.length}
+              </div>
+            </div>
+
+            <div className="bg-white border border-[#F0EEEA] rounded-[3rem] shadow-sm overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-[#A8A7A5] text-[10px] font-bold uppercase tracking-[0.2em] border-b border-[#F0EEEA]">
+                    <th className="px-10 py-6">Position</th>
+                    <th className="px-10 py-6">Contact Info</th>
+                    <th className="px-10 py-6">Joined At</th>
+                    <th className="px-10 py-6 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#F0EEEA]">
+                  {waitlist.length === 0 ? (
+                    <tr><td colSpan={4} className="px-10 py-20 text-center text-slate-400 font-light italic">The waitlist is currently empty.</td></tr>
+                  ) : (
+                    waitlist.map((entry, index) => (
+                      <tr key={entry.id} className="group hover:bg-slate-50/50 transition-colors">
+                        <td className="px-10 py-7">
+                          <span className="text-2xl font-serif italic text-[#C5A059]">#{index + 1}</span>
+                        </td>
+                        <td className="px-10 py-7">
+                          <div className="font-bold text-[#1B4332] text-base">{entry.name}</div>
+                          <div className="text-[11px] text-[#7D7C7A] font-medium">{entry.email} • {entry.phone}</div>
+                        </td>
+                        <td className="px-10 py-7 text-slate-400 text-xs">
+                          {format(new Date(entry.timestamp), 'MMM d, h:mm a')}
+                        </td>
+                        <td className="px-10 py-7 text-center">
+                          <button 
+                            onClick={() => deleteWaitlistEntry(entry.id)}
+                            className="p-3 text-slate-400 hover:text-rose-500 hover:bg-white rounded-xl shadow-sm transition-all"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Article Composer Overlay */}
@@ -470,7 +535,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   { l: 'Member Status', v: viewingReservation.playerType, s: viewingReservation.playerType === 'Member' ? 'text-emerald-500' : 'text-[#C5A059]' },
                   { l: 'Email Verification', v: viewingReservation.email, s: 'text-[#1B4332]' },
                   { l: 'Designated Schedule', v: `${format(new Date(viewingReservation.date), 'MMMM do')} at ${viewingReservation.time}`, s: 'text-[#1B4332]' },
-                  { l: 'Settlement Amount', v: `$${viewingReservation.totalPaid.toFixed(2)}`, s: 'text-[#1B4332]' }
+                  { l: 'Settlement Amount', v: `₱${viewingReservation.totalPaid.toLocaleString()}`, s: 'text-[#1B4332]' }
                 ].map((row, i) => (
                   <div key={i} className="flex justify-between items-end border-b border-slate-50 pb-4">
                     <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{row.l}</span>

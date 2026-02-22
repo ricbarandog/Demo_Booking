@@ -8,9 +8,9 @@ export const COLORS = {
 };
 
 export const CLUB_RATES = {
-  member: 40,
-  nonMember: 60,
-  guestFee: 15,
+  member: 500,
+  nonMember: 800,
+  guestFee: 200,
 };
 
 export const INITIAL_MOCK_SLOTS: TimeSlot[] = [

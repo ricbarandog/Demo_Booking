@@ -13,6 +13,14 @@ export interface NewsItem {
   imageUrl: string;
 }
 
+export interface WaitlistEntry {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  timestamp: Date;
+}
+
 export interface BookingDetails {
   id: string;
   date: Date;

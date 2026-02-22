@@ -50,7 +50,7 @@ const ChatBot: React.FC<ChatBotProps> = ({ slots, news }) => {
         Be professional, helpful, and sophisticated.
         Here is the current club data:
         - Available time slots today: ${availableSlots || 'No slots currently available'}
-        - Rates: $${CLUB_RATES.member}/hr for members, $${CLUB_RATES.nonMember}/hr for non-members. Guest fee is $${CLUB_RATES.guestFee}.
+        - Rates: ₱${CLUB_RATES.member}/hr for members, ₱${CLUB_RATES.nonMember}/hr for non-members. Guest fee is ₱${CLUB_RATES.guestFee}.
         - Latest news highlights: ${news.map(n => n.title).join(', ')}.
         
         Answer user questions about availability and rates concisely. If they want to book, tell them to use the reservation engine on the page.
