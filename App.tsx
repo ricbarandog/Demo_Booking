@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [news, setNews] = useState<NewsItem[]>(INITIAL_MOCK_NEWS);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [clubRates, setClubRates] = useState(CLUB_RATES);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [reservations, setReservations] = useState<BookingDetails[]>([]);
@@ -90,6 +91,40 @@ const App: React.FC = () => {
             joinedAt: new Date(m.joined_at)
           })));
         }
+
+        // Fetch Club Rates
+        const { data: ratesData, error: ratesError } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'club_rates')
+          .single();
+        
+        if (!ratesError && ratesData) {
+          setClubRates(ratesData.value);
+        }
+
+        // Fetch Available Slots
+        const { data: slotsData, error: slotsError } = await supabase
+          .from('settings')
+          .select('*')
+          .eq('key', 'available_slots')
+          .single();
+        
+        if (!slotsError && slotsData) {
+          const baseSlots = slotsData.value as TimeSlot[];
+          const today = new Date().toISOString().split('T')[0];
+          
+          // We need to re-fetch reservations or use the ones we just fetched
+          const { data: currentRes } = await supabase
+            .from('reservations')
+            .select('time')
+            .eq('date', today);
+
+          setSlots(baseSlots.map(s => ({
+            ...s,
+            isAvailable: !currentRes?.some(r => r.time === s.time)
+          })));
+        }
       } catch (err) {
         console.error('Error fetching from Supabase:', err);
       }
@@ -111,11 +146,11 @@ const App: React.FC = () => {
   const [lastBooking, setLastBooking] = useState<BookingDetails | null>(null);
 
   const calculatedPrice = useMemo(() => {
-    const hourlyRate = playerType === 'Member' ? CLUB_RATES.member : CLUB_RATES.nonMember;
+    const hourlyRate = playerType === 'Member' ? clubRates.member : clubRates.nonMember;
     const durationMultiplier = duration / 60;
-    const guestFee = playerType === 'Guest' ? CLUB_RATES.guestFee : 0;
+    const guestFee = playerType === 'Guest' ? clubRates.guestFee : 0;
     return (hourlyRate * durationMultiplier) + guestFee;
-  }, [playerType, duration]);
+  }, [playerType, duration, clubRates]);
 
   const handleBooking = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +237,8 @@ const App: React.FC = () => {
           setWaitlist={setWaitlist}
           members={members}
           setMembers={setMembers}
+          clubRates={clubRates}
+          setClubRates={setClubRates}
           onClose={() => setIsAdmin(false)} 
         />
       )}
@@ -245,8 +282,8 @@ const App: React.FC = () => {
 
       <main className="flex-grow">
         {/* Cinematic Hero */}
-        <section className="pt-24 pb-32 px-6 text-center bg-gradient-to-b from-white to-[#FDFCFB]">
-          <div className="max-w-4xl mx-auto">
+        <section className="pt-24 pb-32 px-6 text-center bg-gradient-to-b from-white to-[#FDFCFB] overflow-hidden">
+          <div className="max-w-4xl mx-auto relative z-10">
             <div className="inline-flex items-center gap-3 px-5 py-2 bg-white border border-[#F0EEEA] rounded-full text-[#C5A059] text-[9px] font-bold uppercase tracking-[0.3em] mb-10 shadow-sm animate-fade-in">
               <Sparkles size={12} className="animate-pulse" />
               Barangay Yhalason Elite Grounds
@@ -254,9 +291,36 @@ const App: React.FC = () => {
             <h1 className="text-6xl md:text-8xl mb-8 text-[#1B4332] leading-[0.95] font-serif tracking-tight">
               Sophistication <br/><span className="italic text-[#C5A059]">Refined.</span>
             </h1>
-            <p className="text-[#7D7C7A] font-light text-xl max-w-2xl mx-auto leading-relaxed opacity-80">
+            <p className="text-[#7D7C7A] font-light text-xl max-w-2xl mx-auto leading-relaxed opacity-80 mb-16">
               The premier destination for the contemporary athlete. Bespoke court management at the heart of Barangay Yhalason.
             </p>
+
+            <div className="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
+              <div className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl transform -rotate-3 hover:rotate-0 transition-all duration-700">
+                <img 
+                  src="https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=800" 
+                  alt="Pickleball Court" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl transform translate-y-12 hover:translate-y-0 transition-all duration-700">
+                <img 
+                  src="https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&q=80&w=800" 
+                  alt="Pickleball Action" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <div className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-all duration-700">
+                <img 
+                  src="https://images.unsplash.com/photo-1613918431703-07e5344984b4?auto=format&fit=crop&q=80&w=800" 
+                  alt="Pickleball Paddle" 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            </div>
           </div>
         </section>
 

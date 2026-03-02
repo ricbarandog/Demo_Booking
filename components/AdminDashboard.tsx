@@ -23,7 +23,8 @@ import {
   Filter,
   Download,
   BookOpen,
-  UserPlus
+  UserPlus,
+  Settings
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -38,6 +39,8 @@ interface AdminDashboardProps {
   setWaitlist: React.Dispatch<React.SetStateAction<WaitlistEntry[]>>;
   members: Member[];
   setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
+  clubRates: { member: number; nonMember: number; guestFee: number };
+  setClubRates: React.Dispatch<React.SetStateAction<{ member: number; nonMember: number; guestFee: number }>>;
   onClose: () => void;
 }
 
@@ -52,12 +55,64 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   setWaitlist,
   members,
   setMembers,
+  clubRates,
+  setClubRates,
   onClose 
 }) => {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal' | 'waitlist' | 'members'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'operations' | 'journal' | 'waitlist' | 'members' | 'settings'>('analytics');
   const [editingNews, setEditingNews] = useState<Partial<NewsItem> | null>(null);
   const [viewingReservation, setViewingReservation] = useState<BookingDetails | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingRates, setEditingRates] = useState(clubRates);
+  const [isSavingRates, setIsSavingRates] = useState(false);
+  const [editingSlots, setEditingSlots] = useState(slots);
+  const [isSavingSlots, setIsSavingSlots] = useState(false);
+
+  const saveRates = async () => {
+    setIsSavingRates(true);
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'club_rates', value: editingRates });
+      
+      if (error) throw error;
+      setClubRates(editingRates);
+      alert('Club rates updated successfully.');
+    } catch (err: any) {
+      console.error('Error saving rates:', err);
+      alert('Failed to save rates. Ensure the "settings" table exists in Supabase.');
+    } finally {
+      setIsSavingRates(false);
+    }
+  };
+
+  const saveSlots = async () => {
+    setIsSavingSlots(true);
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .upsert({ key: 'available_slots', value: editingSlots });
+      
+      if (error) throw error;
+      
+      // Re-apply today's reservations to the newly saved slots
+      const today = new Date().toISOString().split('T')[0];
+      const todayRes = reservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today);
+      
+      const updatedSlots = editingSlots.map(s => ({
+        ...s,
+        isAvailable: !todayRes.some(r => r.time === s.time)
+      }));
+
+      setSlots(updatedSlots);
+      alert('Operational schedule updated successfully.');
+    } catch (err: any) {
+      console.error('Error saving slots:', err);
+      alert('Failed to save schedule. Ensure the "settings" table exists in Supabase.');
+    } finally {
+      setIsSavingSlots(false);
+    }
+  };
 
   // Enhanced Analytics Logic
   const stats = useMemo(() => {
@@ -175,7 +230,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
 
         <div className="flex bg-black/30 p-2 rounded-[1.5rem] border border-white/5 relative z-10">
-          {(['analytics', 'operations', 'journal', 'waitlist', 'members'] as const).map((tab) => (
+          {(['analytics', 'operations', 'journal', 'waitlist', 'members', 'settings'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -186,6 +241,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               {tab === 'journal' && <BookOpen size={14} />}
               {tab === 'waitlist' && <Users size={14} />}
               {tab === 'members' && <UserPlus size={14} />}
+              {tab === 'settings' && <Settings size={14} />}
               {tab}
             </button>
           ))}
@@ -579,6 +635,107 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+        {activeTab === 'settings' && (
+          <div className="max-w-4xl mx-auto space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="flex items-center gap-6 mb-12">
+              <div className="w-16 h-16 bg-[#1B4332] rounded-3xl flex items-center justify-center shadow-2xl">
+                <Settings className="text-[#C5A059]" size={32} />
+              </div>
+              <div>
+                <h3 className="text-4xl font-bold text-[#1B4332] font-serif italic">Club Economics</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.4em] mt-2">Manage court rates and facility fees</p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { label: 'Elite Member Rate', key: 'member', icon: ShieldCheck, desc: 'Hourly rate for registered members' },
+                { label: 'Standard Guest Rate', key: 'nonMember', icon: UserPlus, desc: 'Hourly rate for non-members' },
+                { label: 'Facility Access Fee', key: 'guestFee', icon: DollarSign, desc: 'One-time fee per guest session' },
+              ].map((rate) => (
+                <div key={rate.key} className="bg-white p-10 rounded-[3rem] border border-[#F0EEEA] shadow-sm space-y-6">
+                  <div className="flex items-center gap-4 text-[#1B4332]">
+                    <div className="p-3 bg-slate-50 rounded-2xl">
+                      <rate.icon size={20} className="text-[#C5A059]" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{rate.label}</span>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-serif text-[#C5A059]">₱</span>
+                    <input 
+                      type="number" 
+                      value={editingRates[rate.key as keyof typeof editingRates]}
+                      onChange={(e) => setEditingRates({...editingRates, [rate.key]: parseInt(e.target.value) || 0})}
+                      className="w-full pl-12 pr-8 py-6 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-3xl font-serif text-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5 transition-all"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic leading-relaxed">{rate.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-center pt-8">
+              <button 
+                onClick={saveRates}
+                disabled={isSavingRates}
+                className="px-16 py-6 bg-[#1B4332] text-white text-[10px] font-bold uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-[#1B4332]/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+              >
+                {isSavingRates ? 'Synchronizing Ledger...' : 'Update Economic Policy'}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-6 mb-12 pt-16 border-t border-[#F0EEEA]">
+              <div className="w-16 h-16 bg-[#1B4332] rounded-3xl flex items-center justify-center shadow-2xl">
+                <Clock className="text-[#C5A059]" size={32} />
+              </div>
+              <div>
+                <h3 className="text-4xl font-bold text-[#1B4332] font-serif italic">Court Schedule</h3>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.4em] mt-2">Define operational time slots</p>
+              </div>
+            </div>
+
+            <div className="bg-white p-10 rounded-[3rem] border border-[#F0EEEA] shadow-sm">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                {editingSlots.map((slot, index) => (
+                  <div key={slot.id} className="relative group">
+                    <input 
+                      type="text" 
+                      value={slot.time}
+                      onChange={(e) => {
+                        const newSlots = [...editingSlots];
+                        newSlots[index].time = e.target.value;
+                        setEditingSlots(newSlots);
+                      }}
+                      className="w-full px-6 py-4 bg-[#F5F4F0] rounded-2xl border border-[#F0EEEA] outline-none text-sm font-bold text-[#1B4332] focus:ring-4 focus:ring-[#1B4332]/5 transition-all"
+                    />
+                    <button 
+                      onClick={() => setEditingSlots(editingSlots.filter((_, i) => i !== index))}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  onClick={() => setEditingSlots([...editingSlots, { id: Date.now().toString(), time: '00:00 AM', isAvailable: true }])}
+                  className="flex items-center justify-center gap-3 px-6 py-4 border-2 border-dashed border-[#F0EEEA] rounded-2xl text-[#C5A059] hover:border-[#C5A059] hover:bg-slate-50 transition-all text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <Plus size={16} /> Add Slot
+                </button>
+              </div>
+
+              <div className="flex justify-center">
+                <button 
+                  onClick={saveSlots}
+                  disabled={isSavingSlots}
+                  className="px-16 py-6 bg-[#1B4332] text-white text-[10px] font-bold uppercase tracking-[0.4em] rounded-2xl shadow-2xl shadow-[#1B4332]/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {isSavingSlots ? 'Updating Schedule...' : 'Save Operational Hours'}
+                </button>
+              </div>
             </div>
           </div>
         )}
